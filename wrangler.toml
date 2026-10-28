@@ -1,0 +1,12 @@
+﻿name = "mystical-drama"
+main = "worker.js"
+compatibility_date = "2026-10-26"
+
+[assets]
+directory = "./public"
+binding = "ASSETS"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "mystical-drama-db"
+database_id = "840f2851-2027-4e34-b875-0f83340b8fc1"

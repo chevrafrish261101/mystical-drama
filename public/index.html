@@ -1,0 +1,269 @@
+<CodeBlock language="html" editable>
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#100b1d">
+  <title>Mystical Drama</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #100b1d;
+      color: #f7f2ff;
+      font-family: Arial, sans-serif;
+    }
+    header {
+      padding: 22px 6%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 15px;
+      flex-wrap: wrap;
+      background: #171025;
+      border-bottom: 1px solid #332448;
+    }
+    .logo { font-size: 25px; font-weight: 800; }
+    .logo span { color: #d9ad63; }
+    nav a {
+      color: #e7dff1;
+      text-decoration: none;
+      margin-left: 18px;
+      font-size: 14px;
+    }
+    .hero {
+      padding: 65px 6% 55px;
+      background: radial-gradient(ellipse at top right, #51306c, #100b1d 65%);
+    }
+    .hero small { color: #d9ad63; letter-spacing: 3px; }
+    .hero h1 { font-size: clamp(35px, 6vw, 65px); margin: 18px 0; }
+    .hero p { color: #c6bbd4; max-width: 580px; line-height: 1.7; }
+    .search {
+      display: block;
+      width: 100%;
+      max-width: 480px;
+      margin-top: 25px;
+      padding: 14px 16px;
+      border: 1px solid #49345f;
+      border-radius: 10px;
+      background: #21172f;
+      color: white;
+      font-size: 15px;
+      outline: none;
+    }
+    main { padding: 30px 6% 60px; }
+    .section-title { font-size: 24px; margin-bottom: 22px; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
+      gap: 20px;
+    }
+    .card {
+      overflow: hidden;
+      background: #1c1428;
+      border: 1px solid #30223f;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: transform .2s, border-color .2s;
+    }
+    .card:hover { transform: translateY(-4px); border-color: #d9ad63; }
+    .poster {
+      width: 100%;
+      aspect-ratio: 3 / 4;
+      object-fit: cover;
+      background: linear-gradient(145deg, #39234d, #171020);
+      display: block;
+    }
+    .info { padding: 12px; }
+    .info h3 { font-size: 15px; margin: 0 0 8px; }
+    .genre { font-size: 12px; color: #d9ad63; }
+    .message { color: #c6bbd4; padding: 25px 0; line-height: 1.6; }
+    footer {
+      border-top: 1px solid #332448;
+      text-align: center;
+      padding: 25px;
+      color: #9f91b0;
+      font-size: 13px;
+    }
+    .detail {
+      display: none;
+      margin-top: 30px;
+      padding: 22px;
+      background: #1c1428;
+      border-radius: 12px;
+      border: 1px solid #49345f;
+    }
+    .detail img { width: 150px; max-width: 100%; border-radius: 8px; }
+    .episode {
+      display: block;
+      padding: 13px;
+      margin: 8px 0;
+      border-radius: 8px;
+      background: #2a1d3a;
+      color: white;
+      text-decoration: none;
+      overflow-wrap: anywhere;
+    }
+    .episode:hover { background: #49345f; }
+    .back {
+      padding: 10px 15px;
+      border: 0;
+      border-radius: 8px;
+      background: #d9ad63;
+      color: #170f22;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    @media (max-width: 500px) {
+      header { padding: 18px 5%; }
+      nav a { margin-left: 8px; }
+      main { padding: 25px 5%; }
+      .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">Mystical <span>Drama</span></div>
+    <nav>
+      <a href="#" onclick="showHome()">Beranda</a>
+      <a href="#koleksi">Koleksi</a>
+    </nav>
+  </header>
+
+
+  <section class="hero">
+    <small>YOUR DRAMA DESTINATION</small>
+    <h1>Temukan cerita<br>favoritmu.</h1>
+    <p>Jelajahi berbagai drama dan film dalam satu tempat. Pilih judul favoritmu untuk melihat daftar episodenya.</p>
+    <input id="search" class="search" type="search" placeholder="Cari judul drama..." oninput="renderDramas()">
+  </section>
+
+
+  <main id="koleksi">
+    <section id="home">
+      <h2 class="section-title">Koleksi Drama</h2>
+      <div id="message" class="message">Memuat koleksi drama...</div>
+      <div id="dramas" class="grid"></div>
+    </section>
+
+
+<section id="detail" class="detail">
+<button class="back" onclick="showHome()">← Kembali</button>
+<h2 id="detailTitle"></h2>
+<img id="detailPoster" alt="Poster drama">
+<p id="detailDescription"></p>
+<p id="detailGenre" class="genre"></p>
+<h3>Daftar Episode</h3>
+<div id="episodes"></div>
+</section>
+
+  </main>
+
+
+  <footer>© <span id="year"></span> Mystical Drama</footer>
+
+
+  <script>
+    let allDramas = [];
+
+    document.getElementById("year").textContent = new Date().getFullYear();
+
+    function escapeHTML(value) {
+      return String(value ?? "").replace(/[&<>"']/g, char => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+      })[char]);
+    }
+
+    async function loadDramas() {
+      const message = document.getElementById("message");
+      try {
+        const response = await fetch("/api/dramas");
+        if (!response.ok) throw new Error("Gagal mengambil data");
+        allDramas = await response.json();
+        renderDramas();
+        message.textContent = allDramas.length
+          ? ""
+          : "Belum ada drama. Drama yang ditambahkan admin akan muncul di sini.";
+      } catch {
+        message.textContent = "Koleksi belum bisa dimuat. Pastikan server dan database sudah terhubung.";
+      }
+    }
+
+    function renderDramas() {
+      const keyword = document.getElementById("search").value.toLowerCase();
+      const filtered = allDramas.filter(drama =>
+        String(drama.title || "").toLowerCase().includes(keyword) ||
+        String(drama.genre || "").toLowerCase().includes(keyword)
+      );
+
+      document.getElementById("dramas").innerHTML = filtered.map(drama => `
+        <article class="card" onclick="openDrama(${Number(drama.id)})">
+          <img class="poster"
+            src="${escapeHTML(drama.poster_url || "")}"
+            alt="${escapeHTML(drama.title)}"
+            onerror="this.style.visibility='hidden'">
+          <div class="info">
+            <h3>${escapeHTML(drama.title)}</h3>
+            <div class="genre">${escapeHTML(drama.genre || "Drama")}</div>
+          </div>
+        </article>
+      `).join("");
+
+      if (filtered.length === 0 && allDramas.length > 0) {
+        document.getElementById("message").textContent = "Drama tidak ditemukan.";
+      } else if (filtered.length > 0) {
+        document.getElementById("message").textContent = "";
+      }
+    }
+
+    async function openDrama(id) {
+      const drama = allDramas.find(item => Number(item.id) === id);
+      if (!drama) return;
+
+      document.getElementById("home").style.display = "none";
+      document.getElementById("detail").style.display = "block";
+      document.getElementById("detailTitle").textContent = drama.title || "";
+      document.getElementById("detailPoster").src = drama.poster_url || "";
+      document.getElementById("detailDescription").textContent = drama.description || "";
+      document.getElementById("detailGenre").textContent = drama.genre || "";
+
+      const episodesBox = document.getElementById("episodes");
+      episodesBox.textContent = "Memuat episode...";
+
+      try {
+        const response = await fetch(`/api/dramas/${id}/episodes`);
+        if (!response.ok) throw new Error();
+        const episodes = await response.json();
+
+        episodesBox.innerHTML = episodes.length
+          ? episodes.map(episode => `
+              <a class="episode" href="${escapeHTML(episode.video_url)}" target="_blank" rel="noopener noreferrer">
+                Episode ${Number(episode.episode_number)} — ${escapeHTML(episode.title || "Tonton episode")}
+              </a>
+            `).join("")
+          : "Belum ada episode untuk drama ini.";
+      } catch {
+        episodesBox.textContent = "Daftar episode gagal dimuat.";
+      }
+
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function showHome() {
+      document.getElementById("detail").style.display = "none";
+      document.getElementById("home").style.display = "block";
+    }
+
+    loadDramas();
+  </script>
+
+
+</body>
+</html>
+</CodeBlock>

@@ -1,0 +1,212 @@
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin - Mystical Drama</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 20px; background: #0b1020;
+      color: #fff; font-family: Arial, sans-serif;
+    }
+    main { max-width: 760px; margin: auto; }
+    h1 { color: #b8a1ff; }
+    section {
+      background: #171e32; padding: 20px; border-radius: 14px;
+      margin: 18px 0;
+    }
+    input, textarea, select, button {
+      width: 100%; padding: 12px; margin: 7px 0;
+      border-radius: 8px; border: 1px solid #3a4563;
+      font: inherit;
+    }
+    input, textarea, select { background: #0b1020; color: white; }
+    button {
+      background: #8b5cf6; color: white; border: 0;
+      font-weight: bold; cursor: pointer;
+    }
+    .danger { background: #b91c1c; }
+    .item { border-top: 1px solid #3a4563; padding: 12px 0; }
+    small { color: #cbd5e1; }
+    a { color: #c4b5fd; }
+    #status { white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>🎬 Mystical Drama — Admin</h1>
+  <p>Kelola drama dan episode di sini.</p>
+  <p><a href="/">← Lihat website utama</a></p>
+  <p id="status"></p>
+
+  <section id="loginBox">
+    <h2>Login Admin</h2>
+    <form id="loginForm">
+      <input id="password" type="password" placeholder="Kata sandi admin" required>
+      <button type="submit">Login</button>
+    </form>
+  </section>
+
+  <div id="panel" hidden>
+    <section>
+      <h2>Tambah Drama</h2>
+      <form id="dramaForm">
+        <input id="title" placeholder="Judul drama" required>
+        <input id="genre" placeholder="Genre, misalnya Romance">
+        <textarea id="description" placeholder="Sinopsis drama" rows="4"></textarea>
+        <input id="poster" placeholder="URL poster (sementara)">
+        <button type="submit">Simpan Drama</button>
+      </form>
+    </section>
+
+    <section>
+      <h2>Tambah Episode</h2>
+      <form id="episodeForm">
+        <select id="dramaSelect" required>
+          <option value="">Pilih drama</option>
+        </select>
+        <input id="episodeNumber" type="number" min="1" placeholder="Nomor episode" required>
+        <input id="episodeTitle" placeholder="Judul episode">
+        <input id="videoUrl" type="url" placeholder="Tautan video Google Drive" required>
+        <button type="submit">Simpan Episode</button>
+      </form>
+      <small>Gunakan tautan video yang memang boleh kamu bagikan.</small>
+    </section>
+
+    <section>
+      <h2>Daftar Drama</h2>
+      <div id="dramaList">Memuat data...</div>
+    </section>
+    <button id="logout" type="button">Logout</button>
+  </div>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+const statusBox = $("status");
+
+async function api(path, options = {}) {
+  const response = await fetch(path, {
+    credentials: "same-origin",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...(options.headers || {})
+    }
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || "Permintaan gagal");
+  return data;
+}
+
+function message(text) { statusBox.textContent = text; }
+
+async function checkLogin() {
+  try {
+    const result = await api("/api/admin/me");
+    $("loginBox").hidden = result.loggedIn;
+    $("panel").hidden = !result.loggedIn;
+    if (result.loggedIn) await loadDramas();
+  } catch {
+    message("Tidak dapat memeriksa login. Periksa koneksi website.");
+  }
+}
+
+$("loginForm").addEventListener("submit", async event => {
+  event.preventDefault();
+  try {
+    await api("/api/admin/login", {
+      method: "POST",
+      body: JSON.stringify({ password: $("password").value })
+    });
+    $("password").value = "";
+    message("Login berhasil.");
+    await checkLogin();
+  } catch (error) { message(error.message); }
+});
+
+async function loadDramas() {
+  try {
+    const dramas = await api("/api/dramas");
+    $("dramaSelect").innerHTML = '<option value="">Pilih drama</option>';
+    $("dramaList").replaceChildren();
+
+    for (const drama of dramas) {
+      const option = document.createElement("option");
+      option.value = drama.id;
+      option.textContent = drama.title;
+      $("dramaSelect").append(option);
+
+      const item = document.createElement("div");
+      item.className = "item";
+      const title = document.createElement("strong");
+      title.textContent = drama.title;
+      const detail = document.createElement("p");
+      detail.textContent = drama.genre || "Genre belum diisi";
+      const del = document.createElement("button");
+      del.className = "danger";
+      del.textContent = "Hapus drama dan semua episodenya";
+      del.addEventListener("click", async () => {
+        if (!confirm("Yakin menghapus drama beserta semua episodenya?")) return;
+        try {
+          await api("/api/admin/dramas/" + drama.id, { method: "DELETE" });
+          message("Drama dihapus.");
+          await loadDramas();
+        } catch (error) { message(error.message); }
+      });
+      item.append(title, detail, del);
+      $("dramaList").append(item);
+    }
+
+    if (!dramas.length) $("dramaList").textContent = "Belum ada drama.";
+  } catch (error) { message(error.message); }
+}
+
+$("dramaForm").addEventListener("submit", async event => {
+  event.preventDefault();
+  try {
+    await api("/api/admin/dramas", {
+      method: "POST",
+      body: JSON.stringify({
+        title: $("title").value,
+        genre: $("genre").value,
+        description: $("description").value,
+        poster_url: $("poster").value
+      })
+    });
+    $("dramaForm").reset();
+    message("Drama berhasil disimpan.");
+    await loadDramas();
+  } catch (error) { message(error.message); }
+});
+
+$("episodeForm").addEventListener("submit", async event => {
+  event.preventDefault();
+  try {
+    await api("/api/admin/dramas/" + $("dramaSelect").value + "/episodes", {
+      method: "POST",
+      body: JSON.stringify({
+        episode_number: Number($("episodeNumber").value),
+        title: $("episodeTitle").value,
+        video_url: $("videoUrl").value
+      })
+    });
+    $("episodeForm").reset();
+    message("Episode berhasil disimpan.");
+  } catch (error) { message(error.message); }
+});
+
+$("logout").addEventListener("click", async () => {
+  try {
+    await api("/api/admin/logout", { method: "POST" });
+    message("Kamu sudah logout.");
+    await checkLogin();
+  } catch (error) { message(error.message); }
+});
+
+checkLogin();
+</script>
+</body>
+</html>
